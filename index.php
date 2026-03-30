@@ -315,7 +315,57 @@ function deviceStatusLabel($ts)
             transition: stroke-dashoffset 1s linear;
         }
 
-        /* ═══ DEVICE CARDS ═══ */
+        /* ═══ USER MENU ═══ */
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .user-name {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .user-role {
+            font-size: 0.7em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 0.78em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--tr);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(138, 34, 69, 0.3);
+        }
+
+        .logout-btn:active {
+            transform: translateY(0);
+        }
         .device-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1154,6 +1204,13 @@ function deviceStatusLabel($ts)
                             </svg>
                         </div>
                     </div>
+                    <div class="user-menu">
+                        <div class="user-info">
+                            <div class="user-name"><?= htmlspecialchars($_SESSION['username']) ?></div>
+                            <div class="user-role"><?= htmlspecialchars($_SESSION['role']) ?></div>
+                        </div>
+                        <a href="logout.php" class="logout-btn">🚪 Logout</a>
+                    </div>
                 </div>
             </div>
 
@@ -1346,6 +1403,13 @@ function deviceStatusLabel($ts)
                     <div style="text-align:right;">
                         <p class="device-meta" id="deviceLastSeen">Last seen: --</p>
                         <p class="device-meta" id="deviceBattery">Battery: --</p>
+                    </div>
+                    <div class="user-menu">
+                        <div class="user-info">
+                            <div class="user-name"><?= htmlspecialchars($_SESSION['username']) ?></div>
+                            <div class="user-role"><?= htmlspecialchars($_SESSION['role']) ?></div>
+                        </div>
+                        <a href="logout.php" class="logout-btn">🚪 Logout</a>
                     </div>
                 </div>
             </div>
@@ -1642,6 +1706,4 @@ function deviceStatusLabel($ts)
 </body>
 
 </html>
-
-
 

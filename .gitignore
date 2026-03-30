@@ -1,0 +1,5 @@
+uploads/*.jpg
+*.log
+*.save
+*.save.*
+status/*.json
