@@ -1,5 +1,7 @@
 <?php
-// Endpoint to delete an uploaded image by filename.
+include('config.php');
+checkAccess('admin'); // Only admins can actually run this file
+// Simple endpoint to delete an uploaded image by filename.
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -35,7 +37,7 @@ if (!$inputFile) {
 $file = basename($inputFile); // prevent directory traversal
 $path = $upload_dir . $file;
 
-// Only allow expected image extensions
+// Only allow image extensions we expect
 if (!preg_match('/\.(jpe?g|png)$/i', $file)) {
     echo json_encode(['status' => 'error', 'message' => 'Unsupported file type']);
     exit;
@@ -46,7 +48,6 @@ if (!file_exists($path)) {
     exit;
 }
 
-// Extra safety: ensure file is inside uploads/ (no path traversal)
 $realBase = realpath($upload_dir);
 $realFile = realpath($path);
 if ($realBase === false || $realFile === false || strpos($realFile, $realBase) !== 0) {
@@ -59,4 +60,3 @@ if (@unlink($realFile)) {
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Unable to delete file']);
 }
-

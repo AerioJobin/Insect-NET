@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insect NET - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <?php
+    $view   = isset($_GET['view'])   ? $_GET['view']   : 'landing';
+    $device = isset($_GET['device']) ? $_GET['device'] : null;
+    $upload_dir = 'uploads/';
+    if (!is_dir($upload_dir)) { mkdir($upload_dir, 0777, true); }
+    ?>
+
+    <style>
+        :root {
+            --primary:   #8A2245;
+            --secondary: #6b1a36;
+            --accent:    #c44569;
+            --bg:        #FDFBF7;
+            --surface:   #FFFFFF;
+            --border:    #dee2e6;
+            --text:      #4E4247;
+            --text-dim:  #6c757d;
+            --shadow:    rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .brand-card {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            padding: 20px 28px;
+            background: linear-gradient(135deg, #fff, #f7f2f4);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 10px 28px var(--shadow);
+        }
+        .brand-divider {
+            width: 1px;
+            align-self: stretch;
+            background: linear-gradient(180deg, transparent, rgba(0,0,0,0.08), transparent);
+        }
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+
+        .header {
+            background: linear-gradient(135deg, #FFFFFF 0%, #f8f0f2 100%);
+            border: 1px solid var(--border);
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 2.5em;
+            color: var(--accent);
+            letter-spacing: 4px;
+        }
+
+        /* ── Waveshare Status Bar ── */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 16px 18px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px var(--shadow);
+            margin-bottom: 22px;
+        }
+        .status-label {
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .status-track {
+            flex: 1;
+            height: 10px;
+            background: #f1f3f5;
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .status-fill {
+            position: absolute;
+            inset: 0;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width 0.4s ease;
+        }
+        .status-text {
+            font-size: 0.9em;
+            color: var(--text);
+            font-weight: 600;
+            min-width: 120px;
+            text-align: right;
+        }
+
+        /* ── Layout Grids ── */
+        .device-grid, .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .device-card, .image-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+            transition: 0.3s;
+        }
+        .device-card:hover { transform: translateY(-5px); border-color: var(--primary); cursor: pointer; }
+        .image-container { position: relative; }
+        .image-link { display: block; }
+        .image-container img { width: 100%; border-radius: 8px; margin-bottom: 10px; }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            font-size: 1.1em;
+            line-height: 1;
+            transition: background 0.2s ease;
+        }
+        .delete-btn:hover { background: rgba(0,0,0,0.8); }
+
+        .device-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .online  { background: #dcfce7; color: #16a34a; }
+        .offline { background: #fee2e2; color: #ef4444; }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        #map {
+            height: 320px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        /* ── Layout helpers ── */
+        .panel-row {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+            gap: 16px;
+            align-items: stretch;
+            margin-bottom: 24px;
+        }
+        .panel-row .status-bar { margin-bottom: 0; }
+
+        @media (max-width: 900px) {
+            .panel-row {
+                grid-template-columns: 1fr;
+            }
+            .panel-row .status-bar { order: -1; }
+        }
+    </style>
+</head>
+<body>
+
+<?php if ($view == 'landing'): ?>
+<div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:0;">
+        <div class="brand-card" style="margin-bottom: 32px;">
+            <div class="brand-logo">
+                <img src="assets/neuronics_logo.png"
+                     alt="NeuRonICS Lab"
+                     style="height:90px; width:auto; object-fit:contain;"
+                     onerror="this.style.display='none'">
+            </div>
+            <div class="brand-divider"></div>
+            <div class="brand-logo">
+                <img src="assets/iisc_logo.jpg"
+                     alt="IISc Bangalore"
+                     style="height:170px; width:auto; object-fit:contain;"
+                     onerror="this.style.display='none'">
+            </div>
+        </div>
+    <h1 style="font-family:'Space Mono',monospace; font-size:3.5em; color:var(--primary); letter-spacing:6px; margin-bottom:8px;">
+        INSECT NET
+    </h1>
+    <p style="font-size:1em; color:var(--text-dim); letter-spacing:3px; margin-bottom:36px; font-family:'Space Mono',monospace;">
+        MISSION CONTROL — NeuRonICS LAB · IISc
+    </p>
+    <a href="index.php?view=dashboard"
+       style="background:var(--primary); color:white; padding:15px 40px; border-radius:30px; text-decoration:none; font-weight:bold; letter-spacing:2px; font-size:0.95em;">
+        ENTER DASHBOARD
+    </a>
+</div>
+
+<?php elseif ($view == 'dashboard' && !$device): ?>
+<div class="container">
+    <div class="header">
+        <div class="header-content">
+            <a href="index.php" style="display:flex; align-items:center; text-decoration:none; flex-shrink:0;">
+                <img src="assets/neuronics_logo.png" style="height:48px; width:auto;" onerror="this.style.display='none'">
+            </a>
+            <div style="text-align: right;">
+                <h1>INSECT NET</h1>
+                <p>Global Fleet Status</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="device-grid">
+        <div class="device-card" onclick="location.href='index.php?view=dashboard&device=device1'">
+            <h3>INMT Device 1</h3>
+            <p id="battery-cam1">Battery: --</p>
+            <p id="location-cam1">Location: --</p>
+            <div id="status-cam1" class="device-status offline">Checking...</div>
+        </div>
+        <div class="device-card" onclick="location.href='index.php?view=dashboard&device=device2'">
+            <h3>INMT Device 2</h3>
+            <p id="battery-cam2">Battery: --</p>
+            <p id="location-cam2">Location: --</p>
+            <div id="status-cam2" class="device-status offline">Checking...</div>
+        </div>
+    </div>
+
+    <div class="header" style="margin-top:30px;">
+        <h3>Fleet Map</h3>
+        <div id="map"></div>
+    </div>
+</div>
+
+<script>
+    const devices = ['cam1', 'cam2'];
+    const defaultLocations = {
+        cam1: { lat: 13.0187, lng: 77.5708 }, // user-specified default
+        cam2: { lat: 13.0127, lng: 77.5677 }
+    };
+
+    let map = L.map('map').setView([defaultLocations.cam1.lat, defaultLocations.cam1.lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    let markers = {};
+
+    function deviceUrlFromCam(camId) {
+        return `index.php?view=dashboard&device=${camId.replace('cam', 'device')}`;
+    }
+
+    function upsertMarker(camId, lat, lng) {
+        const label = camId.toUpperCase();
+        if (!markers[camId]) {
+            markers[camId] = L.marker([lat, lng]).addTo(map);
+            markers[camId].bindPopup(`<strong>${label}</strong><br><a href="${deviceUrlFromCam(camId)}">Open dashboard</a>`);
+            markers[camId].on('click', () => {
+                window.location.href = deviceUrlFromCam(camId);
+            });
+        } else {
+            markers[camId].setLatLng([lat, lng]);
+        }
+    }
+
+    function setOffline(id) {
+        const st = document.getElementById(`status-${id}`);
+        st.textContent = 'Offline';
+        st.className = 'device-status offline';
+
+        const def = defaultLocations[id];
+        if (def) {
+            document.getElementById(`location-${id}`).textContent = `Loc: ${def.lat}, ${def.lng}`;
+            upsertMarker(id, def.lat, def.lng);
+        }
+    }
+
+    function updateFleet() {
+        devices.forEach(id => {
+            fetch(`get_status.php?device_id=${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success' && data.latest) {
+                        const v = parseFloat(data.latest.battery_voltage);
+                        const p = Math.min(100, Math.max(0, ((v - 3.0) / 1.2) * 100));
+                        document.getElementById(`battery-${id}`).textContent =
+                            `Battery: ${v.toFixed(2)}V (${Math.round(p)}%)`;
+
+                        const st = document.getElementById(`status-${id}`);
+                        st.textContent = 'Online';
+                        st.className = 'device-status online';
+
+                        const lat = data.latest.gps_latitude;
+                        const lng = data.latest.gps_longitude;
+                        document.getElementById(`location-${id}`).textContent = `Loc: ${lat}, ${lng}`;
+
+                        upsertMarker(id, lat, lng);
+                    } else {
+                        setOffline(id);
+                    }
+                })
+                .catch(() => setOffline(id));
+        });
+    }
+    setInterval(updateFleet, 5000);
+    updateFleet();
+</script>
+
+<?php elseif ($view == 'dashboard' && $device): ?>
+<div class="container">
+    <a href="index.php?view=dashboard" class="back-btn">&lt; Back to Fleet</a>
+
+    <div class="header">
+        <div class="header-content">
+            <a href="index.php" style="display:flex; align-items:center; text-decoration:none; flex-shrink:0;">
+                <img src="assets/neuronics_logo.png" style="height:48px; width:auto;" onerror="this.style.display='none'">
+            </a>
+            <h1><?php echo strtoupper($device); ?></h1>
+        </div>
+    </div>
+
+    <div class="panel-row">
+        <div id="map"></div>
+        <div class="status-bar">
+            <div class="status-label">Waveshare Board</div>
+            <div class="status-track">
+                <div id="waveshareStatusFill" class="status-fill"></div>
+            </div>
+            <div id="waveshareStatusText" class="status-text">Awaiting signal...</div>
+        </div>
+    </div>
+
+    <h3 style="margin-bottom:16px;">Captured Images</h3>
+    <div class="image-gallery">
+        <?php
+        $files = glob($upload_dir . "*.{jpg,png,jpeg}", GLOB_BRACE);
+        usort($files, function($a, $b) { return filemtime($b) - filemtime($a); });
+        $camId = str_replace('device', 'cam', $device);
+        $deviceFiles = array_filter($files, function($f) use ($camId) {
+            return strpos(basename($f), $camId) !== false;
+        });
+
+        if (empty($deviceFiles)): ?>
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; border: 2px dashed var(--border); border-radius: 12px; color: var(--text-dim);">
+                <div style="font-size: 3em; margin-bottom: 12px;">📷</div>
+                <p style="font-family:'Space Mono',monospace; font-size:0.9em; letter-spacing:2px;">NO IMAGES CAPTURED YET</p>
+                <p style="font-size:0.8em; margin-top:8px;">Images will appear here once <?php echo strtoupper($camId); ?> starts uploading.</p>
+            </div>
+        <?php else:
+            foreach ($deviceFiles as $file) {
+                $base = basename($file);
+                echo "<div class='image-container' data-file='$base'>";
+                echo "  <button class='delete-btn' type='button' aria-label='Delete image' data-file='$base'>&times;</button>";
+                echo "  <a class='image-link' href='$file' target='_blank' rel='noopener'>";
+                echo "    <img src='$file' alt='$base'>";
+                echo "  </a>";
+                echo "  <p>$base</p>";
+                echo "</div>";
+            }
+        endif; ?>
+    </div>
+</div>
+
+<script>
+    const deviceId = "<?php echo str_replace('device', 'cam', $device); ?>";
+    const defaultLocation = {
+        cam1: { lat: 13.0187, lng: 77.5708 },
+        cam2: { lat: 13.0127, lng: 77.5677 }
+    };
+    const baseLoc = defaultLocation[deviceId] || { lat: 13.0127, lng: 77.5677 };
+
+    let deviceMap = L.map('map').setView([baseLoc.lat, baseLoc.lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(deviceMap);
+    let marker = L.marker([baseLoc.lat, baseLoc.lng]).addTo(deviceMap);
+
+    function updateStatusBar(stateText, fillPercent) {
+        const fill = document.getElementById('waveshareStatusFill');
+        const text = document.getElementById('waveshareStatusText');
+        if (!fill || !text) return;
+        const pct = Math.max(0, Math.min(fillPercent, 100));
+        fill.style.width = pct + '%';
+        text.textContent = stateText;
+        text.style.color = pct > 0 ? "var(--text)" : "var(--text-dim)";
+    }
+
+    function fetchStatus() {
+        fetch(`get_status.php?device_id=${deviceId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success' && data.latest) {
+                    updateStatusBar('Link active', 65);
+
+                    const lat = parseFloat(data.latest.gps_latitude);
+                    const lng = parseFloat(data.latest.gps_longitude);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        marker.setLatLng([lat, lng]);
+                        deviceMap.setView([lat, lng]);
+                    }
+                } else {
+                    updateStatusBar('Awaiting data', 0);
+                }
+            })
+            .catch(() => {
+                updateStatusBar('Offline', 0);
+                marker.setLatLng([baseLoc.lat, baseLoc.lng]);
+                deviceMap.setView([baseLoc.lat, baseLoc.lng]);
+            });
+    }
+
+    function bindDeleteButtons() {
+        const deleteUrl = new URL('delete_image.php', window.location.href).toString();
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const file = btn.dataset.file;
+                if (!file) return;
+                if (!confirm(`Delete ${file}?`)) return;
+
+                const body = new URLSearchParams();
+                body.append('file', file);
+
+                fetch(deleteUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                })
+                .then(async r => {
+                    const text = await r.text();
+                    let res = {};
+                    try { res = text ? JSON.parse(text) : {}; }
+                    catch (err) { throw new Error(text || `Server error (${r.status})`); }
+                    if (!r.ok) {
+                        throw new Error(res.message || `Server error (${r.status})`);
+                    }
+                    return res;
+                })
+                .then(res => {
+                    if (res.status === 'ok') {
+                        const card = btn.closest('.image-container');
+                        if (card) card.remove();
+                        if (!document.querySelector('.image-container')) {
+                            // if all images removed, refresh to show empty state
+                            location.reload();
+                        }
+                    } else {
+                        throw new Error(res.message || 'Could not delete image.');
+                    }
+                })
+                .catch((err) => alert(err.message || 'Delete failed. Please try again.'));
+            });
+        });
+    }
+
+    setInterval(fetchStatus, 5000);
+    fetchStatus();
+    bindDeleteButtons();
+</script>
+<?php endif; ?>
+</body>
+</html>

@@ -1,0 +1,522 @@
+        .device-status { display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.75em; margin-top:10px; font-weight:bold; }
+        .online  { background:#dcfce7; color:#16a34a; }
+        .offline { background:#fee2e2; color:#ef4444; }
+        .stale   { background:#fef9c3; color:#92400e; }
+
+        /* Modem bar */
+        .status-bar {
+            display:flex; align-items:center; gap:14px;
+            background:var(--surface); border:1px solid var(--border);
+            padding:16px 18px; border-radius:12px; box-shadow:0 6px 18px var(--shadow);
+        }
+        .status-label { font-family:'Space Mono',monospace; letter-spacing:2px; font-size:0.9em; color:var(--text-dim); text-transform:uppercase; }
+        .status-track { flex:1; height:10px; background:#f1f3f5; border-radius:999px; overflow:hidden; position:relative; }
+        .status-fill  { position:absolute; inset:0; width:0%; background:linear-gradient(90deg,var(--primary),var(--accent)); transition:width 0.4s ease; }
+        .status-text  { font-size:0.9em; color:var(--text); font-weight:600; min-width:120px; text-align:right; }
+
+        /* Map */
+        #map { height:320px; border-radius:12px; border:1px solid var(--border); }
+        .map-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .last-updated     { font-size:0.75em; color:var(--text-dim); }
+        .last-updated-row { display:flex; justify-content:flex-end; margin:-8px 0 16px; }
+
+        /* Gallery grid */
+        .image-gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+
+        .image-container {
+            background:var(--surface); border:1px solid var(--border);
+            padding:12px; border-radius:12px; position:relative; transition:0.2s;
+        }
+        .image-container:hover  { border-color:var(--primary); }
+        .image-container.deleting { opacity:0.4; pointer-events:none; }
+
+        /* Shimmer placeholder */
+        .img-wrapper {
+            position:relative; width:100%; padding-bottom:75%;
+            background:#f1f3f5; border-radius:8px; overflow:hidden; margin-bottom:8px;
+        }
+        .img-wrapper::before {
+            content:''; position:absolute; inset:0;
+            background:linear-gradient(90deg,#f1f3f5 25%,#e9ecef 50%,#f1f3f5 75%);
+            background-size:200% 100%; animation:shimmer 1.4s infinite; transition:opacity 0.3s;
+        }
+        .img-wrapper.img-ready::before { opacity:0; pointer-events:none; }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        .img-wrapper img {
+            position:absolute; inset:0; width:100%; height:100%;
+            object-fit:cover; border-radius:8px; cursor:pointer;
+            opacity:0; transition:opacity 0.3s ease;
+        }
+        .img-wrapper img.loaded { opacity:1; }
+
+        /* Delete button — appears on card hover */
+        .delete-btn {
+            position:absolute; top:8px; right:8px; border:none;
+            background:rgba(220,38,38,0.85); color:#fff;
+            border-radius:50%; width:30px; height:30px; cursor:pointer;
+            font-size:1.1em; display:flex; align-items:center; justify-content:center;
+            opacity:0; transition:opacity 0.2s; z-index:10;
+        }
+        .image-container:hover .delete-btn { opacity:1; }
+        .img-filename { font-size:0.75em; color:var(--text-dim); word-break:break-all; margin-top:2px; }
+
+        .date-heading {
+            grid-column:1/-1; font-family:'Space Mono',monospace;
+            padding:10px 0; border-bottom:1px dashed var(--border);
+            color:var(--primary); font-weight:bold; margin-top:20px;
+        }
+        .gallery-empty   { grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--text-dim); }
+        .gallery-loading { grid-column:1/-1; display:flex; align-items:center; justify-content:center; gap:10px; padding:40px; color:var(--text-dim); }
+
+        .spinner { width:20px; height:20px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.7s linear infinite; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* Lightbox */
+        .lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.88); display:none; align-items:center; justify-content:center; z-index:1000; }
+        .lightbox.open { display:flex; }
+        .lightbox-panel { position:relative; background:#101010; padding:16px 20px 24px; border-radius:12px; }
+        .lightbox-panel img { max-width:86vw; max-height:70vh; border-radius:8px; display:block; }
+        .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); border:none; background:rgba(255,255,255,0.15); color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:1.1em; }
+        .lightbox-nav.prev { left:-52px; }
+        .lightbox-nav.next { right:-52px; }
+        .lightbox-close { border:none; background:rgba(255,255,255,0.15); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; position:absolute; top:8px; right:8px; }
+
+        .back-btn { display:inline-block; margin-bottom:20px; text-decoration:none; color:var(--primary); font-weight:bold; }
+    </style>
+</head>
+<body>
+
+<?php /* ══════════════════ LANDING ══════════════════ */ if ($view === 'landing'): ?>
+
+<div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+    <div class="brand-card" style="margin-bottom:32px;">
+        <img src="assets/neuronics_logo.png" style="height:90px;" onerror="this.style.display='none'">
+        <div class="brand-divider"></div>
+        <img src="assets/iisc_logo.jpg" style="height:150px;" onerror="this.style.display='none'">
+    </div>
+    <h1 style="font-family:'Space Mono',monospace;font-size:3.5em;color:var(--primary);letter-spacing:6px;">INSECT NET</h1>
+    <p style="letter-spacing:3px;margin-bottom:36px;color:var(--text-dim);">MISSION CONTROL — NeuRonICS LAB · IISc</p>
+    <a href="index.php?view=dashboard" style="background:var(--primary);color:white;padding:15px 40px;border-radius:30px;text-decoration:none;font-weight:bold;">ENTER DASHBOARD</a>
+</div>
+
+<?php /* ══════════════════ FLEET DASHBOARD ══════════════════ */ elseif ($view === 'dashboard' && !$device): ?>
+
+<div class="container">
+    <div class="header">
+        <div class="header-content">
+            <h1>INSECT NET</h1>
+            <p>Global Fleet Status</p>
+        </div>
+    </div>
+
+    <div class="device-grid">
+        <?php
+        $deviceList = [
+            'cam1' => ['label'=>'INMT Device 1','key'=>'device1'],
+            'cam2' => ['label'=>'INMT Device 2','key'=>'device2'],
+        ];
+        foreach ($deviceList as $camId => $info):
+            $files    = glob($upload_dir . $camId . '_*.{jpg,jpeg,png}', GLOB_BRACE) ?: [];
+            $lastTs   = $files ? max(array_map('filemtime', $files)) : null;
+            $imgCount = count($files);
+        ?>
+        <div class="device-card" onclick="location.href='index.php?view=dashboard&device=<?php echo $info['key']; ?>'">
+            <h3><?php echo $info['label']; ?></h3>
+            <p class="device-meta">Battery: <span id="battery-<?php echo $camId; ?>">--</span></p>
+            <p class="device-meta">Last seen: <span id="lastseen-<?php echo $camId; ?>"><?php echo lastSeenLabel($lastTs); ?></span></p>
+            <p class="device-meta"><?php echo $imgCount; ?> image<?php echo $imgCount !== 1 ? 's' : ''; ?> stored</p>
+            <div id="status-<?php echo $camId; ?>" class="device-status <?php echo deviceStatusClass($lastTs); ?>"><?php echo deviceStatusLabel($lastTs); ?></div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
+    <div class="header" style="margin-top:30px;">
+        <div class="map-meta">
+            <h3>Fleet Map</h3>
+            <span id="fleetLastUpdated" class="last-updated">Last updated: --</span>
+        </div>
+        <div id="map"></div>
+    </div>
+</div>
+
+<script>
+const DEVICES      = ['cam1','cam2'];
+const DEFAULT_LOCS = { cam1:{lat:13.0187,lng:77.5708}, cam2:{lat:13.0127,lng:77.5677} };
+const DEV_LABELS   = { cam1:'INMT Device 1', cam2:'INMT Device 2' };
+
+const fleetMap     = L.map('map').setView([DEFAULT_LOCS.cam1.lat, DEFAULT_LOCS.cam1.lng], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(fleetMap);
+const fleetMarkers = {};
+
+function timeSince(ts) {
+    const d = Math.floor(Date.now()/1000) - ts;
+    if (d < 60)    return 'Just now';
+    if (d < 3600)  return `${Math.floor(d/60)} min ago`;
+    if (d < 86400) return `${Math.floor(d/3600)} hr ago`;
+    return `${Math.floor(d/86400)} days ago`;
+}
+
+function setMarker(id, lat, lng, battLabel, statusLabel, statusColor) {
+    const name = DEV_LABELS[id] || id;
+    const link = `index.php?view=dashboard&device=${id.replace('cam','device')}`;
+    const popup = `<div style="text-align:center;font-family:Inter,sans-serif;min-width:140px;">
+        <strong style="color:#8A2245;">${name}</strong><br>
+        <span style="color:${statusColor};font-weight:bold;">● ${statusLabel}</span><br>
+        <small>Batt: ${battLabel}</small><br><br>
+        <a href="${link}" style="background:#8A2245;color:white;padding:4px 10px;border-radius:4px;text-decoration:none;font-size:11px;">VIEW DASHBOARD</a>
+    </div>`;
+    if (!fleetMarkers[id]) {
+        fleetMarkers[id] = L.marker([lat,lng]).addTo(fleetMap);
+        fleetMarkers[id].bindTooltip(name, {direction:'top',offset:[0,-10]});
+        fleetMarkers[id].on('mouseover', () => fleetMarkers[id].openTooltip());
+        fleetMarkers[id].on('mouseout',  () => fleetMarkers[id].closeTooltip());
+        fleetMarkers[id].bindPopup(popup);
+        fleetMarkers[id].on('click', () => { window.location.href = link; });
+    } else {
+        fleetMarkers[id].setLatLng([lat,lng]);
+        fleetMarkers[id].setPopupContent(popup);
+    }
+}
+
+function updateFleet() {
+    document.getElementById('fleetLastUpdated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    DEVICES.forEach(id => {
+        fetch(`get_status.php?device_id=${id}`)
+            .then(r => r.json())
+            .then(data => {
+                const def = DEFAULT_LOCS[id];
+                if (data.status === 'success' && data.latest) {
+                    const d   = data.latest;
+                    const v   = parseFloat(d.battery_voltage);
+                    const ts  = d.timestamp ? parseInt(d.timestamp) : null;
+                    let lat   = parseFloat(d.gps_latitude);
+                    let lng   = parseFloat(d.gps_longitude);
+                    if (isNaN(lat)||isNaN(lng)) { lat=def.lat; lng=def.lng; }
+
+                    const battEl = document.getElementById(`battery-${id}`);
+                    const seenEl = document.getElementById(`lastseen-${id}`);
+                    const statEl = document.getElementById(`status-${id}`);
+                    if (battEl) battEl.textContent = isNaN(v) ? '--' : `${v.toFixed(2)}V`;
+                    if (ts && seenEl) seenEl.textContent = timeSince(ts);
+
+                    const diff = ts ? (Date.now()/1000 - ts) : Infinity;
+                    if (statEl) {
+                        if      (diff < 300)  { statEl.textContent='Online';  statEl.className='device-status online'; }
+                        else if (diff < 3600) { statEl.textContent='Stale';   statEl.className='device-status stale'; }
+                        else                  { statEl.textContent='Offline'; statEl.className='device-status offline'; }
+                    }
+                    const bL = isNaN(v)?'--':`${v.toFixed(2)}V`;
+                    const sL = diff<300?'Online':diff<3600?'Stale':'Offline';
+                    const sC = diff<300?'#16a34a':diff<3600?'#92400e':'#ef4444';
+                    setMarker(id, lat, lng, bL, sL, sC);
+                } else {
+                    setMarker(id, def.lat, def.lng, '--', 'Offline', '#ef4444');
+                }
+            })
+            .catch(() => {
+                const def = DEFAULT_LOCS[id];
+                setMarker(id, def.lat, def.lng, '--', 'Offline', '#ef4444');
+            });
+    });
+}
+setInterval(updateFleet, 5000);
+updateFleet();
+</script>
+
+<?php /* ══════════════════ DEVICE VIEW ══════════════════ */ elseif ($view === 'dashboard' && $device): ?>
+
+<?php
+$camId    = str_replace('device','cam',$device);
+$sortMode = isset($_GET['sort']) ? $_GET['sort'] : 'date';
+
+$allFiles    = glob($upload_dir . "*.{jpg,png,jpeg}", GLOB_BRACE) ?: [];
+$deviceFiles = array_values(array_filter($allFiles, fn($f) => strpos(basename($f),$camId) !== false));
+
+if ($sortMode === 'latest') {
+    usort($deviceFiles, fn($a,$b) => filemtime($b) - filemtime($a));
+    $galleryGroups = [['date'=>null,'files'=>array_map(fn($f)=>['src'=>$f,'name'=>basename($f)],$deviceFiles)]];
+} else {
+    $grouped = [];
+    foreach ($deviceFiles as $f) { $grouped[date('F j, Y',filemtime($f))][] = $f; }
+    krsort($grouped);
+    $galleryGroups = [];
+    foreach ($grouped as $day => $dayFiles) {
+        usort($dayFiles, fn($a,$b) => filemtime($b) - filemtime($a));
+        $galleryGroups[] = ['date'=>$day,'files'=>array_map(fn($f)=>['src'=>$f,'name'=>basename($f)],$dayFiles)];
+    }
+}
+$totalImages = count($deviceFiles);
+$lastTs      = $deviceFiles ? max(array_map('filemtime',$deviceFiles)) : null;
+?>
+
+<div class="container">
+    <a href="index.php?view=dashboard" class="back-btn">&larr; Back to Fleet</a>
+
+    <div class="header">
+        <div class="header-content">
+            <h1><?php echo strtoupper($device); ?></h1>
+            <div>
+                <p class="device-meta" id="deviceLastSeen">Last seen: <?php echo lastSeenLabel($lastTs); ?></p>
+                <p class="device-meta" id="deviceBattery">Battery: --</p>
+                <p class="device-meta">GPS: <span id="deviceGPS">--</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-row">
+        <div id="map"></div>
+        <div class="status-bar" style="flex-direction:column;align-items:flex-start;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;width:100%;">
+                <div class="status-label">Modem Link</div>
+                <div class="status-track" style="flex:1;"><div id="waveshareStatusFill" class="status-fill"></div></div>
+                <div id="waveshareStatusText" class="status-text">Awaiting...</div>
+            </div>
+        </div>
+    </div>
+    <div class="last-updated-row">
+        <span id="deviceLastUpdated" class="last-updated">Last updated: --</span>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <strong id="galleryCount"><?php echo $totalImages; ?> image<?php echo $totalImages!==1?'s':''; ?></strong>
+        <form method="get" style="display:flex;gap:8px;align-items:center;">
+            <input type="hidden" name="view"   value="dashboard">
+            <input type="hidden" name="device" value="<?php echo htmlspecialchars($device); ?>">
+            <select name="sort" onchange="this.form.submit()" style="padding:8px;border-radius:8px;border:1px solid var(--border);">
+                <option value="date"   <?php echo $sortMode==='date'  ?'selected':''; ?>>Group by Date</option>
+                <option value="latest" <?php echo $sortMode==='latest'?'selected':''; ?>>Latest First</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="image-gallery" id="imageGallery">
+        <div class="gallery-loading"><div class="spinner"></div><span>Loading images…</span></div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox" aria-hidden="true">
+    <div class="lightbox-panel" role="dialog" aria-modal="true">
+        <button id="lightboxClose" class="lightbox-close">Close</button>
+        <button id="lightboxPrev"  class="lightbox-nav prev">&#8592;</button>
+        <img    id="lightboxImg"   src="" alt="">
+        <button id="lightboxNext"  class="lightbox-nav next">&#8594;</button>
+        <p id="lightboxCap" style="color:white;text-align:center;margin-top:10px;font-size:0.8em;"></p>
+    </div>
+</div>
+
+<script>
+// Gallery data injected server-side — no extra HTTP request needed
+const GALLERY_DATA = <?php echo json_encode($galleryGroups); ?>;
+const TOTAL_IMAGES = <?php echo (int)$totalImages; ?>;
+
+let allImages = [];
+GALLERY_DATA.forEach(g => g.files.forEach(f => allImages.push(f)));
+
+const gallery      = document.getElementById('imageGallery');
+const galleryCount = document.getElementById('galleryCount');
+
+// ── Build gallery DOM ─────────────────────────────────────────
+function buildGallery() {
+    gallery.innerHTML = '';
+    if (TOTAL_IMAGES === 0) {
+        gallery.innerHTML = '<div class="gallery-empty">No images found for this device.</div>';
+        return;
+    }
+    GALLERY_DATA.forEach(group => {
+        if (group.date) {
+            const h = document.createElement('div');
+            h.className = 'date-heading';
+            h.textContent = group.date;
+            gallery.appendChild(h);
+        }
+        group.files.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'image-container';
+            card.dataset.filename = item.name;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'img-wrapper';
+
+            const img = document.createElement('img');
+            img.dataset.src = item.src;  // lazy — not loaded yet
+            img.alt = item.name;
+            img.addEventListener('load',  () => { img.classList.add('loaded'); wrapper.classList.add('img-ready'); });
+            img.addEventListener('error', () => { wrapper.classList.add('img-ready'); img.style.display='none'; });
+            img.addEventListener('click', () => openLightbox(item.src));
+            wrapper.appendChild(img);
+            card.appendChild(wrapper);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-btn';
+            delBtn.title = 'Delete';
+            delBtn.textContent = '×';
+            delBtn.addEventListener('click', e => { e.stopPropagation(); deleteImage(item.name, card); });
+            card.appendChild(delBtn);
+
+            const fname = document.createElement('p');
+            fname.className = 'img-filename';
+            fname.textContent = item.name;
+            card.appendChild(fname);
+
+            gallery.appendChild(card);
+        });
+    });
+    initLazyLoad();
+}
+
+// ── IntersectionObserver lazy load ────────────────────────────
+function initLazyLoad() {
+    const imgs = gallery.querySelectorAll('img[data-src]');
+    if (!imgs.length) return;
+    if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries, o) => {
+            entries.forEach(en => {
+                if (en.isIntersecting) {
+                    const img = en.target;
+                    img.src = img.dataset.src;
+                    delete img.dataset.src;
+                    o.unobserve(img);
+                }
+            });
+        }, { rootMargin:'200px' });
+        imgs.forEach(img => obs.observe(img));
+    } else {
+        imgs.forEach(img => { img.src = img.dataset.src; }); // fallback
+    }
+}
+
+buildGallery();
+
+// ── Delete — POSTs back to THIS file with action=delete ───────
+function deleteImage(filename, cardEl) {
+    if (!confirm(`Delete "${filename}"?`)) return;
+    cardEl.classList.add('deleting');
+
+    fetch('index.php', {
+        method:  'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body:    `action=delete&file=${encodeURIComponent(filename)}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            cardEl.style.transition = 'opacity 0.3s,transform 0.3s';
+            cardEl.style.opacity    = '0';
+            cardEl.style.transform  = 'scale(0.95)';
+            setTimeout(() => {
+                cardEl.remove();
+                allImages = allImages.filter(i => i.name !== filename);
+                const rem = gallery.querySelectorAll('.image-container').length;
+                if (galleryCount) galleryCount.textContent = `${rem} image${rem!==1?'s':''}`;
+                // Remove any date headings that now have no cards under them
+                gallery.querySelectorAll('.date-heading').forEach(h => {
+                    const next = h.nextElementSibling;
+                    if (!next || next.classList.contains('date-heading')) h.remove();
+                });
+                if (rem === 0) gallery.innerHTML = '<div class="gallery-empty">No images found for this device.</div>';
+            }, 300);
+        } else {
+            cardEl.classList.remove('deleting');
+            alert('Delete failed: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(() => {
+        cardEl.classList.remove('deleting');
+        alert('Network error — delete failed.');
+    });
+}
+
+// ── Lightbox ──────────────────────────────────────────────────
+const lightbox      = document.getElementById('lightbox');
+const lightboxImg   = document.getElementById('lightboxImg');
+const lightboxCap   = document.getElementById('lightboxCap');
+const lightboxClose = document.getElementById('lightboxClose');
+const lightboxPrev  = document.getElementById('lightboxPrev');
+const lightboxNext  = document.getElementById('lightboxNext');
+let   currentIndex  = -1;
+
+function openLightbox(src) {
+    currentIndex = allImages.findIndex(i => i.src === src);
+    showAt(currentIndex);
+    lightbox.classList.add('open');
+    lightbox.setAttribute('aria-hidden','false');
+}
+function showAt(idx) {
+    if (!allImages.length) return;
+    currentIndex = (idx + allImages.length) % allImages.length;
+    lightboxImg.src = allImages[currentIndex].src;
+    lightboxCap.textContent = allImages[currentIndex].name;
+}
+function closeLightbox() {
+    lightbox.classList.remove('open');
+    lightbox.setAttribute('aria-hidden','true');
+    lightboxImg.src = '';
+}
+lightbox.addEventListener('click',      e => { if (e.target===lightbox) closeLightbox(); });
+lightboxClose.addEventListener('click', e => { e.stopPropagation(); closeLightbox(); });
+lightboxPrev.addEventListener('click',  e => { e.stopPropagation(); showAt(currentIndex-1); });
+lightboxNext.addEventListener('click',  e => { e.stopPropagation(); showAt(currentIndex+1); });
+document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key==='ArrowRight') showAt(currentIndex+1);
+    if (e.key==='ArrowLeft')  showAt(currentIndex-1);
+    if (e.key==='Escape')     closeLightbox();
+});
+
+// ── Device map + live status polling ─────────────────────────
+const DEVICE_ID    = "<?php echo addslashes($camId); ?>";
+const DEV_DEFAULTS = { cam1:{lat:13.0187,lng:77.5708}, cam2:{lat:13.0127,lng:77.5677} };
+const base         = DEV_DEFAULTS[DEVICE_ID] || {lat:13.0127,lng:77.5677};
+
+const devMap    = L.map('map').setView([base.lat,base.lng], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(devMap);
+const devMarker = L.marker([base.lat,base.lng]).addTo(devMap);
+
+function timeSince(ts) {
+    const d = Math.floor(Date.now()/1000) - ts;
+    if (d < 60)    return 'Just now';
+    if (d < 3600)  return `${Math.floor(d/60)} min ago`;
+    if (d < 86400) return `${Math.floor(d/3600)} hr ago`;
+    return `${Math.floor(d/86400)} days ago`;
+}
+
+function fetchStatus() {
+    fetch(`get_status.php?device_id=${DEVICE_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            const $ = id => document.getElementById(id);
+            if (data.status === 'success' && data.latest) {
+                const d  = data.latest;
+                const ts = d.timestamp ? parseInt(d.timestamp) : null;
+                const v  = parseFloat(d.battery_voltage);
+                $('waveshareStatusFill').style.width = '100%';
+                $('waveshareStatusText').textContent  = 'Link Active';
+                if (!isNaN(v)) $('deviceBattery').textContent = `Battery: ${v.toFixed(2)}V`;
+                if (ts)        $('deviceLastSeen').textContent = `Last seen: ${timeSince(ts)}`;
+                const lat = parseFloat(d.gps_latitude);
+                const lng = parseFloat(d.gps_longitude);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    devMarker.setLatLng([lat,lng]);
+                    devMap.setView([lat,lng]);
+                    $('deviceGPS').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                }
+            } else {
+                $('waveshareStatusFill').style.width = '0%';
+                $('waveshareStatusText').textContent  = 'No Signal';
+            }
+            $('deviceLastUpdated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        })
+        .catch(() => {
+            document.getElementById('deviceLastUpdated').textContent =
+                `Last updated: ${new Date().toLocaleTimeString()} (fetch failed)`;
+        });
+}
+setInterval(fetchStatus, 5000);
+fetchStatus();
+</script>
+
+<?php endif; ?>
+</body>
+</html>
